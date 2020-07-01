@@ -13,11 +13,15 @@ class FlexibleHeaderContainerViewController: MDCFlexibleHeaderContainerViewContr
     
     
     init() {
-        let layoutFlow = UICollectionViewFlowLayout()
-        let sectionInset: CGFloat = 10.0
-        layoutFlow.sectionInset = UIEdgeInsets(top: sectionInset, left: sectionInset, bottom: sectionInset, right: sectionInset)
+//        let layoutFlow = UICollectionViewFlowLayout()
+//        let sectionInset: CGFloat = 10.0
+//        layoutFlow.sectionInset = UIEdgeInsets(top: sectionInset, left: sectionInset, bottom: sectionInset, right: sectionInset)
         
-        let collectionVC = CollectionViewController(collectionViewLayout: layoutFlow)
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let collectionVC =
+            storyboard.instantiateViewController(withIdentifier: "CollectionViewController") as! CollectionViewController
+        
+        //let collectionVC = CollectionViewController(collectionViewLayout: layoutFlow)
         super.init(contentViewController: collectionVC)
         
         collectionVC.headerViewController = self.headerViewController

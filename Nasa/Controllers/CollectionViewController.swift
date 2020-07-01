@@ -7,37 +7,42 @@
 //
 
 import UIKit
+import CoreData
 import MaterialComponents.MaterialFlexibleHeader
 
 private let reuseIdentifier = "CollectionViewCell"
 
-class CollectionViewController: UICollectionViewController , UICollectionViewDelegateFlowLayout{
+class CollectionViewController: UICollectionViewController , UICollectionViewDelegateFlowLayout {
     
     var headerViewController : MDCFlexibleHeaderViewController!
-    fileprivate var dataSource : NasaDataSource
     fileprivate var headerContentView = HeaderContentView(frame: CGRect.zero)
-    fileprivate var items : [Items]?
+    fileprivate let viewModel = ViewModel()
+    fileprivate var isDelete = false
+    var fetchController: NSFetchedResultsController<DataDB>?
     
-    override init(collectionViewLayout layout: UICollectionViewLayout) {
-        self.dataSource = NasaDataSource()
-        super.init(collectionViewLayout: layout)
-        dataSource.delegate = self
-        self.collectionView?.register(CollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
-    }
+    //    override init(collectionViewLayout layout: UICollectionViewLayout) {
+    //        super.init(collectionViewLayout: layout)
+    //        self.collectionView?.register(CollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
+    //        self.collectionView?.backgroundColor = UIColor(white: 0.97, alpha: 1)
+    //    }
     
     
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    //    required init?(coder: NSCoder) {
+    //        fatalError("init(coder:) has not been implemented")
+    //    }
     
     // MARK: - View Life Cycle
     
+    override func viewDidLoad() {
+        viewModel.initalizateDB{ fetchController in
+            fetchController.delegate = self
+            self.fetchController = fetchController
+            try? fetchController.performFetch()
+            self.viewModel.startFetch()
+        }
+    }
     
     override func viewWillAppear(_ animated: Bool) {
-        if items == nil {
-            dataSource.startLoad()
-        }
-        
         sizeHeaderView()
         collectionView?.collectionViewLayout.invalidateLayout()
     }
@@ -45,14 +50,12 @@ class CollectionViewController: UICollectionViewController , UICollectionViewDel
     // MARK: UICollectionViewDataSource
     
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 1
-    }
-    
+          return 1
+      }
     
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of items
-        return self.items?.count ?? 0
+        return self.fetchController?.fetchedObjects?.count ?? 0
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -60,12 +63,12 @@ class CollectionViewController: UICollectionViewController , UICollectionViewDel
         
         // Configure the cell
         
-        guard let viewCell = cell as? CollectionViewCell else { return cell }
+        guard let viewCell = cell as? CollectionViewCell, let data = self.fetchController?.object(at: indexPath) else { return cell }
         
-        let itemNumber = indexPath.item
-        let title = self.items?[itemNumber].data[0].title ?? ""
-        let description = self.items?[itemNumber].data[0].description ?? ""
-        let url = self.items?[itemNumber].links?[0].href ?? ""
+        viewCell.delegate = self
+        let title = data.title ?? ""
+        let description = data.description_data ?? ""
+        let url = data.link_relation?.first?.href ?? ""
         viewCell.populateCell(title: title, url: url, description: description)
         
         return viewCell
@@ -79,8 +82,22 @@ class CollectionViewController: UICollectionViewController , UICollectionViewDel
         if #available(iOS 11.0, *) {
             safeAreaInset += self.view.safeAreaInsets.left + self.view.safeAreaInsets.right
         }
-        let cellWidth = floor((self.view.frame.size.width - 10 - safeAreaInset) / 2)
-        let cellHeight = cellWidth * 1.2
+        let cellWidth = floor((self.view.frame.size.width - 10 - safeAreaInset))
+        var cellHeight = cellWidth * 1.2
+        if let data = self.fetchController?.object(at: indexPath), let title = data.title, let description = data.description_data {
+            
+            let imageHeight  = cellWidth / 2
+            
+            let size = CGSize(width: cellWidth, height:1000)
+            let attributesTitle = [NSAttributedString.Key.font : UIFont.systemFont(ofSize: 14) ]
+            let attributesDescription = [NSAttributedString.Key.font : UIFont.systemFont(ofSize: 12) ]
+            let estimatedFrameTitle = NSString(string: title).boundingRect(with: size, options: .usesLineFragmentOrigin, attributes: attributesTitle, context: nil)
+             let estimatedFrameDescription = NSString(string: description).boundingRect(with: size, options: .usesLineFragmentOrigin, attributes: attributesDescription, context: nil)
+            
+            cellHeight = imageHeight + estimatedFrameTitle.height + estimatedFrameDescription.height + 40
+        }
+        
+        
         return CGSize(width: cellWidth, height: cellHeight)
     }
     
@@ -146,16 +163,42 @@ class CollectionViewController: UICollectionViewController , UICollectionViewDel
     
 }
 
-//MARK: NasaDataSourceDelegate
-extension CollectionViewController : NasaDataSourceDelegate {
+
+//MARK: FetchedResultsControllerDelegate
+extension CollectionViewController : NSFetchedResultsControllerDelegate {
     
-    func dataSourceSuccessful(items: [Items]) {
-        self.items = items
-        collectionView.reloadData()
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        if !isDelete {
+            collectionView.reloadData()
+        }
+        print(" did type  \(controller.accessibilityContainerType.rawValue)")
+        let count = controller.fetchedObjects?.count ?? -1
+        print("size list \(count)")
     }
     
-    func dataSourceError(error: Error) {
-        print(error.localizedDescription)
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
+        
+        switch type {
+        case .delete:
+            isDelete = true
+            self.collectionView.deleteItems(at: [indexPath!])
+        default:
+            isDelete = false
+        }
     }
+}
+
+//MARK: SwipeableCollectionViewCellDelegate
+extension CollectionViewController : SwipeableCollectionViewCellDelegate{
+    func deleteItemCell(inCell cell: UICollectionViewCell) {
+        guard let indexPath = collectionView.indexPath(for: cell), let data = self.fetchController?.object(at: indexPath)  else { return }
+//        collectionView.performBatchUpdates({
+        // tener en cuenta que hay que usar otro delegate de NSFetchedResultsControllerDelegate para que primero se elimine en DB y despues se elimine en la collection. ver ejemplo coredata vs real
+//            self.collectionView.deleteItems(at: [indexPath])
+//        })
+        print(" item delete \(indexPath.item)")
+        viewModel.deleteDataDB(dataDB: data)
+    }
+    
     
 }

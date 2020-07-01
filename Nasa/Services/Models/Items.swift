@@ -21,26 +21,30 @@ public struct Items: Codable {
         case links
     }
     
-
+    
 }
 
-public struct DataItems : Codable{
+public struct DataItems : Codable {
     
     public let center : String
     public let dateCreated : String
     public let nasaId : String
     public let description : String
+    public let location : String?
+    public let photographer : String?
     public let keywords : [String]
     public let title : String
     public let mediaType: String
     
     
-    private enum CodingKeys : String, CodingKey{
+    private enum CodingKeys : String, CodingKey {
         
         case center
         case dateCreated = "date_created"
         case nasaId = "nasa_id"
         case description
+        case location
+        case photographer
         case keywords
         case title
         case mediaType = "media_type"

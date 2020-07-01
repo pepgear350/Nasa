@@ -8,55 +8,49 @@
 
 import UIKit
 
-protocol NasaDataSourceDelegate : class {
-    
-    func dataSourceSuccessful(items : [Items])
-    func dataSourceError(error : Error)
-    
-}
 
 class NasaDataSource : NSObject {
     
     
-    var delegate : NasaDataSourceDelegate?
     var method: ConfigurationsAPi.Method { return .get }
-     var timeoutInterval = 30.0
+    var timeoutInterval = 30.0
     
-    func startLoad() {
+    func startLoad( completion:  @escaping ([Items]?, Error?) -> Void) {
         guard let request = try? prepareURLRequest() else {
-            delegate?.dataSourceError(error: ConfigurationsAPi.RequestError.invalidURL)
+            completion(nil, ConfigurationsAPi.RequestError.invalidURL)
             return
         }
         
         //request.httpMethod = method.rawValue
         //print(request.url)
         //let url = "https://images-api.nasa.gov/search?q=apollo 11"
-       // if let encodedURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) , let urlFormat = URL(string: encodedURL){
-            let task = URLSession.shared.dataTask(with: request, completionHandler: {data,response,error in
-                     
-                     if let error = error {
-                               self.delegate?.dataSourceError(error: error)
-                               return
-                           }
-                     
-                     guard let httpResponse = response as? HTTPURLResponse,
-                              (200...299).contains(httpResponse.statusCode) else {
-                                 self.delegate?.dataSourceError(error: ConfigurationsAPi.RequestError.http(status: (response as! HTTPURLResponse).statusCode))
-                                  return
-                          }
-                     
-                     DispatchQueue.main.async {
-                      if let receivedData = data, let items = self.decodeReceivedData(data: receivedData){
-                             self.delegate?.dataSourceSuccessful(items: items)
-                         }
-                     }
-                     
-                 })
-                 task.resume()
-       // }
-
+        // if let encodedURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) , let urlFormat = URL(string: encodedURL){
+        let task = URLSession.shared.dataTask(with: request, completionHandler: {data,response,error in
+            
+            if let error = error {
+                completion(nil, error)
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                (200...299).contains(httpResponse.statusCode) else {
+                    completion(nil, ConfigurationsAPi.RequestError.http(status: (response as! HTTPURLResponse).statusCode))
+                    return
+            }
+            
+            DispatchQueue.main.async {
+                if let receivedData = data, let items = self.decodeReceivedData(data: receivedData){
+                    completion(items, nil)
+                }
+            }
+            
+        })
+        task.resume()
+        // }
+        
         
     }
+    
     
     private func decodeReceivedData(data : Data) -> [Items]? {
         let decoder = JSONDecoder()

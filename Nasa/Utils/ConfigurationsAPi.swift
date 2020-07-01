@@ -12,7 +12,7 @@ public struct ConfigurationsAPi {
     
     static let urlBase = "https://images-api.nasa.gov"
     static let endpoint = "/search"
-    static let parameters :[String: String] = ["q":"apollo 11"]
+    static let parameters : [String: String] = ["q":"apollo 11"]
     
     
     enum Method: String {
