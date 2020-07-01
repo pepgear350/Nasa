@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="16119" systemVersion="19F101" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="DataDB" representedClassName="DataDB" syncable="YES">
+        <attribute name="center" optional="YES" attributeType="String"/>
+        <attribute name="date_created" optional="YES" attributeType="String"/>
+        <attribute name="description_data" optional="YES" attributeType="String"/>
+        <attribute name="keywords" optional="YES" attributeType="Transformable" customClassName="Array&lt;String&gt;"/>
+        <attribute name="location" optional="YES" attributeType="String"/>
+        <attribute name="media_type" optional="YES" attributeType="String"/>
+        <attribute name="nasa_id" optional="YES" attributeType="String"/>
+        <attribute name="photographer" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="link_relation" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="LinksDB" inverseName="data_relation" inverseEntity="LinksDB"/>
+    </entity>
+    <entity name="LinksDB" representedClassName="LinksDB" syncable="YES">
+        <attribute name="href" optional="YES" attributeType="String"/>
+        <attribute name="rel" optional="YES" attributeType="String"/>
+        <attribute name="render" optional="YES" attributeType="String"/>
+        <relationship name="data_relation" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DataDB" inverseName="link_relation" inverseEntity="DataDB"/>
+    </entity>
+    <elements>
+        <element name="DataDB" positionX="-5094" positionY="-4680" width="128" height="193"/>
+        <element name="LinksDB" positionX="-5105.1796875" positionY="-4687.84375" width="128" height="103"/>
+    </elements>
+</model>
